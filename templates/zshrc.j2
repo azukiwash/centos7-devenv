@@ -1,0 +1,146 @@
+#
+# Executes commands at the start of an interactive session.
+#
+# Authors:
+#   Sorin Ionescu <sorin.ionescu@gmail.com>
+#
+
+# Source Prezto.
+if [[ -s "${ZDOTDIR:-$HOME}/.zprezto/init.zsh" ]]; then
+  source "${ZDOTDIR:-$HOME}/.zprezto/init.zsh"
+fi
+
+# Customize to your needs...
+
+alias ltt="/usr/bin/ls --color=auto --full-time -lAhtr"
+alias be="bundle exec"
+alias dk="sudo docker"
+alias dkp="dk ps -a"
+alias dki="dk images"
+alias gl='git log --graph --name-status --pretty=format:"%C(red)%h %C(green)%an %Creset%s %C(yellow)%d%Creset"'
+alias sl=/usr/bin/sl
+
+export EDITOR=vi
+export VISUAL=vi
+export HISTSIZE=100000
+export SAVEHIST=100000
+
+# for nodebrew
+export PATH=$HOME/.nodebrew/current/bin:$PATH
+
+# for rbenv
+export PATH="$HOME/.rbenv/bin:$PATH"
+eval "$(rbenv init -)"
+
+# for golang
+export GOPATH="$HOME/.go"
+export PATH="$GOPATH/bin:$PATH"
+
+# for autojump
+[[ -s $HOME/.autojump/etc/profile.d/autojump.sh ]] && source $HOME/.autojump/etc/profile.d/autojump.sh
+
+autoload -U compinit && compinit -u
+
+# for peco
+## for docker
+function dkgrep() {
+    if [[ $1 == "" ]]; then
+        PECO=peco
+    else
+        PECO="peco --query $1"
+    fi
+    sudo docker ps -a | eval $PECO | awk '{ print $1 }'
+}
+
+function dkkill() {
+    if [[ $1 =~ "^-" ]]; then
+        QUERY=""            # options only
+    else
+        QUERY=$1            # with a query
+        [[ $# > 0 ]] && shift
+    fi
+    dkgrep $QUERY | xargs sudo docker kill $*
+}
+
+function dkrm() {
+    if [[ $1 =~ "^-" ]]; then
+        QUERY=""            # options only
+    else
+        QUERY=$1            # with a query
+        [[ $# > 0 ]] && shift
+    fi
+    dkgrep $QUERY | xargs sudo docker rm $*
+}
+
+function dkrmf() {
+    if [[ $1 =~ "^-" ]]; then
+        QUERY=""            # options only
+    else
+        QUERY=$1            # with a query
+        [[ $# > 0 ]] && shift
+    fi
+    dkgrep $QUERY | xargs sudo docker rm -f $*
+}
+
+function dkigrep() {
+    if [[ $1 == "" ]]; then
+        PECO=peco
+    else
+        PECO="peco --query $1"
+    fi
+    sudo docker images | eval $PECO | awk '{ print $3 }'
+}
+
+function dkrmi() {
+    if [[ $1 =~ "^-" ]]; then
+        QUERY=""            # options only
+    else
+        QUERY=$1            # with a query
+        [[ $# > 0 ]] && shift
+    fi
+    dkigrep $QUERY | xargs sudo docker rmi $*
+}
+
+## for proccess control
+function ppgrep() {
+    if [[ $1 == "" ]]; then
+        PECO=peco
+    else
+        PECO="peco --query $1"
+    fi
+    sudo ps auxww | eval $PECO | awk '{ print $2 }'
+}
+
+function ppkill() {
+    if [[ $1 =~ "^-" ]]; then
+        QUERY=""            # options only
+    else
+        QUERY=$1            # with a query
+        [[ $# > 0 ]] && shift
+    fi
+    ppgrep $QUERY | xargs sudo kill $*
+}
+
+## for zsh history search
+function exists { type $1 &> /dev/null }
+
+if exists peco; then
+    function peco_select_history() {
+        local tac
+        exists gtac && tac="gtac" || { exists tac && tac="tac" || { tac="tail -r" } }
+        BUFFER=$(fc -l -n 1 | eval $tac | peco)
+        CURSOR=$#BUFFER         # move cursor
+        zle -R -c               # refresh
+    }
+    zle -N peco_select_history
+    bindkey '^R' peco_select_history
+fi
+
+## for ag and vim
+function agv () {
+  vim $(ag $@ | peco | awk -F : '{print "-c " $2 " " $1}')
+}
+
+function gv () {
+  vim $(gd | peco)
+}

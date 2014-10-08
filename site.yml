@@ -1,0 +1,155 @@
+---
+- hosts: servers
+  user: vagrant
+  roles:
+  - common
+  vars:
+    user: vagrant
+    home_dir: /home/{{ user }}
+  tasks:
+  - name: ensure Development tools are at the latest version
+    sudo: yes
+    yum: name="@Development tools" state=latest
+
+  - name: ensure openssl-devel is at the present version
+    sudo: yes
+    yum: name=openssl-devel state=present
+
+  - name: ensure libyaml-devel is at the present version
+    sudo: yes
+    yum: name=libyaml-devel state=present
+
+  - name: ensure readline-devel is at the present version
+    sudo: yes
+    yum: name=readline-devel state=present
+
+  - name: ensure sqlite-devel is at the present version
+    sudo: yes
+    yum: name=sqlite-devel state=present
+
+  - name: ensure xz-devel is at the present version
+    sudo: yes
+    yum: name=xz-devel state=present
+
+  - name: ensure tree is at the present version
+    sudo: yes
+    yum: name=tree state=present
+
+  - name: ensure tmux is at the present version
+    sudo: yes
+    yum: name=tmux state=present
+
+  - name: ensure zsh is at the present version
+    sudo: yes
+    yum: name=zsh state=present
+
+  - name: ensure vim is at the present version
+    sudo: yes
+    yum: name=vim state=present
+
+  - name: ensure wget is at the present version
+    sudo: yes
+    yum: name=wget state=present
+
+  - name: ensure golang is at the present version
+    sudo: yes
+    yum: name=golang state=present
+
+  - name: ensure docker is at the present version
+    sudo: yes
+    yum: name=docker state=present
+
+  - name: ensure login shell is zsh
+    sudo: yes
+    command: grep {{ user }} /etc/passwd  
+    register: currentshell 
+  - name: change login shell to zsh
+    sudo: yes
+    when: currentshell.stdout.find('/bin/zsh') == -1 
+    command: chsh -s /bin/zsh {{ user }}
+
+  - name: get prezto(https://github.com/sorin-ionescu/prezto)
+    git: repo=https://github.com/sorin-ionescu/prezto.git
+         dest={{ home_dir }}/.zprezto
+  - name: install prezto
+    shell: |
+      [ -e {{ home_dir }}/.zlogin    ] || ln -s {{ home_dir }}/.zprezto/runcoms/zlogin    {{ home_dir }}/.zlogin
+      [ -e {{ home_dir }}/.zlogout   ] || ln -s {{ home_dir }}/.zprezto/runcoms/zlogout   {{ home_dir }}/.zlogout
+      [ -e {{ home_dir }}/.zpreztorc ] || ln -s {{ home_dir }}/.zprezto/runcoms/zpreztorc {{ home_dir }}/.zpreztorc
+      [ -e {{ home_dir }}/.zprofile  ] || ln -s {{ home_dir }}/.zprezto/runcoms/zprofile  {{ home_dir }}/.zprofile
+      [ -e {{ home_dir }}/.zshenv    ] || ln -s {{ home_dir }}/.zprezto/runcoms/zshenv    {{ home_dir }}/.zshenv
+      [ -e {{ home_dir }}/.zshrc     ] || ln -s {{ home_dir }}/.zprezto/runcoms/zshrc     {{ home_dir }}/.zshrc
+
+  - name: get autojump(https://github.com/joelthelion/autojump)
+    git: repo=https://github.com/joelthelion/autojump.git
+         dest=/var/tmp/autojump
+  - name: install autojump to home
+    shell: |
+      creates={{ home_dir }}/.autojump/bin/autojump
+      cd /var/tmp/autojump
+      ./install.py
+
+  - name: get the_silver_searcher(https://github.com/ggreer/the_silver_searcher)
+    git: repo=https://github.com/ggreer/the_silver_searcher.git
+         dest=/var/tmp/the_silver_searcher
+  - name: install ag to /usr/local/bin
+    shell: |
+      cd /var/tmp/the_silver_searcher
+      ./build.sh
+      sudo make install
+
+  - name: get nodebrew(https://github.com/hokaccha/nodebrew)
+    get_url: url=http://git.io/nodebrew
+             dest=/var/tmp/nodebrew
+  - name: install nodebrew
+    shell: |
+      cd /var/tmp
+      perl nodebrew setup
+
+  - name: get rbenv(https://github.com/sstephenson/rbenv)
+    git: repo=https://github.com/sstephenson/rbenv.git
+         dest={{ home_dir }}/.rbenv
+  - name: get ruby-build(https://github.com/sstephenson/ruby-build)
+    git: repo=https://github.com/sstephenson/ruby-build.git
+         dest={{ home_dir }}/.rbenv/plugins/ruby-build
+
+  - name: get docker-enter(https://github.com/jpetazzo/nsenter/blob/master/docker-enter)
+    get_url: url=https://raw.githubusercontent.com/jpetazzo/nsenter/master/docker-enter
+             dest=/var/tmp/docker-enter
+  - name: install docker-enter to /usr/local/bin
+    sudo: yes
+    shell: |
+      mv /var/tmp/docker-enter /usr/local/bin/
+      chmod +x /usr/local/bin/docker-enter
+
+  - name: install peco(https://github.com/peco/peco) to home
+    shell: |
+      mkdir ~/.go
+      export GOPATH="$HOME/.go"
+      go get github.com/peco/peco/cmd/peco
+      go get github.com/peco/migemogrep
+
+  - name: set git config
+    shell: |
+      git config --global core.editor vim
+      git config --global alias.l 'log --graph --name-status --pretty=format:"%C(red)%h %C(green)%an %Creset%s %C(yellow)%d%Creset"'
+      git config --global color.ui auto
+
+  - name: put .vimrc to home
+    template: src=templates/vimrc.j2 dest={{ home_dir }}/.vimrc
+
+  - name: put .tmux.conf to home
+    template: src=templates/tmux_conf.j2 dest={{ home_dir }}/.tmux.conf
+
+  - name: create peco config dir to home
+    shell: |
+      [ -e {{ home_dir }}/.peco ] || mkdir {{ home_dir }}/.peco
+  - name: put peco config to home
+    template: src=templates/peco_config.j2 dest={{ home_dir }}/.peco/config.json
+
+  - name: put .zpreztorc to home
+    template: src=templates/zpreztorc.j2 dest={{ home_dir }}/.zpreztorc
+
+  - name: put .zshrc to home
+    template: src=templates/zshrc.j2 dest={{ home_dir }}/.zshrc
+

@@ -1,0 +1,14 @@
+---
+- name: get epel repo
+  sudo: yes
+  get_url: url="http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-2.noarch.rpm"
+           dest=/var/tmp/epel-release-7-2.noarch.rpm
+
+- name: set epel repo
+  sudo: yes
+  yum: name=/var/tmp/epel-release-7-2.noarch.rpm state=present
+
+- name: ensure sl is at the present version
+  sudo: yes
+  yum: name=sl state=present
+
