@@ -18,17 +18,8 @@ vagrant | success >> {
     "ping": "pong"
 }
 
-azuki.cc | success >> {
-    "changed": false,
-    "ping": "pong"
-}
-
 > ansible vagrant -a "/bin/date"
 vagrant | success | rc=0 >>
 Fri Dec 18 07:36:07 UTC 2015
-
-> ansible azuki.cc -a "/bin/date"
-azuki.cc | success | rc=0 >>
-Fri Dec 18 16:33:47 JST 2015
 ```
 
