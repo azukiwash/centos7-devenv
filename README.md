@@ -2,7 +2,7 @@
 
 Before execute playbooks, you need to setup hosts file in "/etc/ansible/hosts".(if OSX its in "/usr/local/etc/ansible/hosts")
 
-You can use openssh rather than default python ssh libs.
+You can use openssh(with ssh-config option) rather than default python ssh libs.
 
 ```
 [servers]
@@ -10,7 +10,7 @@ vagrant  ansible_connection=ssh
 azuki.cc ansible_connection=ssh
 ```
 
-You can check connections with 'ping' command.
+You can check connections health with 'ping' command.
 
 ```
 > ansible all -m ping

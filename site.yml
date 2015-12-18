@@ -6,6 +6,10 @@
     home_dir: /home/{{ user }}
 
   tasks:
+  - name: Update to latest.
+    sudo: yes
+    yum: name=* state=latest
+
   - name: ensure epel Repo are at the latest version
     sudo: yes
     yum: name="epel-release" state=latest
@@ -82,6 +86,22 @@
     sudo: yes
     yum: name=the_silver_searcher state=present
 
+  - name: ensure jq is at the present version
+    sudo: yes
+    yum: name=jq state=present
+
+  - name: ensure ngrep is at the present version
+    sudo: yes
+    yum: name=ngrep state=present
+
+  - name: ensure nmap is at the present version
+    sudo: yes
+    yum: name=nmap state=present
+
+  - name: ensure socat is at the present version
+    sudo: yes
+    yum: name=socat state=present
+
   - name: ensure login shell is zsh
     sudo: yes
     command: grep {{ user }} /etc/passwd  
@@ -152,9 +172,6 @@
       [ -e {{ home_dir }}/.peco ] || mkdir {{ home_dir }}/.peco
   - name: put peco config to home
     template: src=templates/peco_config.j2 dest={{ home_dir }}/.peco/config.json
-
-  - name: put .zpreztorc to home
-    template: src=templates/zpreztorc.j2 dest={{ home_dir }}/.zpreztorc
 
   - name: put .zshrc to home
     template: src=templates/zshrc.j2 dest={{ home_dir }}/.zshrc
