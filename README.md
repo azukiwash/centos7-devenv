@@ -7,7 +7,6 @@ You can use openssh(with ssh-config option) rather than default python ssh libs.
 ```
 [servers]
 vagrant  ansible_connection=ssh
-azuki.cc ansible_connection=ssh
 ```
 
 You can check connections health with 'ping' command.
