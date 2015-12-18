@@ -1,12 +1,23 @@
 ---
-- hosts: servers
+- hosts: vagrant
   user: vagrant
-  roles:
-  - common
   vars:
     user: vagrant
     home_dir: /home/{{ user }}
+
   tasks:
+  - name: ensure epel Repo are at the latest version
+    sudo: yes
+    yum: name="epel-release" state=latest
+
+  - name: ensure sl is at the present version
+    sudo: yes
+    yum: name=sl state=present
+
+  - name: ensure git is at the present version
+    sudo: yes
+    yum: name=git state=present
+
   - name: ensure Development tools are at the latest version
     sudo: yes
     yum: name="@Development tools" state=latest
@@ -31,6 +42,10 @@
     sudo: yes
     yum: name=xz-devel state=present
 
+  - name: ensure pcre-devel is at the present version
+    sudo: yes
+    yum: name=pcre-devel state=present
+
   - name: ensure tree is at the present version
     sudo: yes
     yum: name=tree state=present
@@ -51,6 +66,10 @@
     sudo: yes
     yum: name=wget state=present
 
+  - name: ensure curl is at the present version
+    sudo: yes
+    yum: name=curl state=present
+
   - name: ensure golang is at the present version
     sudo: yes
     yum: name=golang state=present
@@ -58,6 +77,10 @@
   - name: ensure docker is at the present version
     sudo: yes
     yum: name=docker state=present
+
+  - name: ensure the_silver_searcher is at the present version
+    sudo: yes
+    yum: name=the_silver_searcher state=present
 
   - name: ensure login shell is zsh
     sudo: yes
@@ -71,6 +94,7 @@
   - name: get prezto(https://github.com/sorin-ionescu/prezto)
     git: repo=https://github.com/sorin-ionescu/prezto.git
          dest={{ home_dir }}/.zprezto
+         force=yes
   - name: install prezto
     shell: |
       [ -e {{ home_dir }}/.zlogin    ] || ln -s {{ home_dir }}/.zprezto/runcoms/zlogin    {{ home_dir }}/.zlogin
@@ -89,15 +113,6 @@
       cd /var/tmp/autojump
       ./install.py
 
-  - name: get the_silver_searcher(https://github.com/ggreer/the_silver_searcher)
-    git: repo=https://github.com/ggreer/the_silver_searcher.git
-         dest=/var/tmp/the_silver_searcher
-  - name: install ag to /usr/local/bin
-    shell: |
-      cd /var/tmp/the_silver_searcher
-      ./build.sh
-      sudo make install
-
   - name: get nodebrew(https://github.com/hokaccha/nodebrew)
     get_url: url=http://git.io/nodebrew
              dest=/var/tmp/nodebrew
@@ -112,15 +127,6 @@
   - name: get ruby-build(https://github.com/sstephenson/ruby-build)
     git: repo=https://github.com/sstephenson/ruby-build.git
          dest={{ home_dir }}/.rbenv/plugins/ruby-build
-
-  - name: get docker-enter(https://github.com/jpetazzo/nsenter/blob/master/docker-enter)
-    get_url: url=https://raw.githubusercontent.com/jpetazzo/nsenter/master/docker-enter
-             dest=/var/tmp/docker-enter
-  - name: install docker-enter to /usr/local/bin
-    sudo: yes
-    shell: |
-      mv /var/tmp/docker-enter /usr/local/bin/
-      chmod +x /usr/local/bin/docker-enter
 
   - name: install peco(https://github.com/peco/peco) to home
     shell: |
