@@ -1,0 +1,64 @@
+---
+- hosts: vagrant
+  user: vagrant
+  vars:
+    user: vagrant
+    home_dir: /home/{{ user }}
+    gitlab_hostname: localhost.localdomain
+    gitlab_ip: 10.0.2.15
+
+  tasks:
+  - name: ensure docker is at the present version
+    sudo: yes
+    yum: name=docker state=present
+
+  - name: enabled docker service
+    sudo: yes
+    service:
+      name: docker
+      enabled: yes
+
+  - name: start docker service
+    sudo: yes
+    service:
+      name: docker
+      state: started
+
+  - name: create data directory for gitlab
+    sudo: yes
+    file:
+      path: /srv
+      state: directory
+
+  - name: allow docker to change files in the directory
+    sudo: yes
+    shell: "chcon -Rt svirt_sandbox_file_t /srv"
+    changed_when: false
+
+  - name: stop and remove exist docker containers
+    sudo: yes
+    shell: |
+      containers=$(docker ps -a -q)
+      [ -z "$containers" ] || (docker stop $containers && docker rm $containers)
+    changed_when: false
+
+  - name: pull latest gitlab-ce image from repo
+    sudo: yes
+    shell: "docker pull gitlab/gitlab-ce:latest"
+    changed_when: false
+
+  - name: start gitlab container
+    sudo: yes
+    shell: |
+      docker run --detach \
+        --hostname {{ gitlab_hostname }} \
+        --publish {{ gitlab_ip }}:443:443 \
+        --publish {{ gitlab_ip }}:80:80 \
+        --publish {{ gitlab_ip }}:12222:22 \
+        --name gitlab \
+        --restart always \
+        --volume /srv/gitlab/config:/etc/gitlab \
+        --volume /srv/gitlab/logs:/var/log/gitlab \
+        --volume /srv/gitlab/data:/var/opt/gitlab \
+        gitlab/gitlab-ce:latest
+    changed_when: false
