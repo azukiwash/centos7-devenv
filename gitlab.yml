@@ -83,7 +83,8 @@
   - name: check gitlab config if already modified
     sudo: yes
     shell: |
-      [ "`tail -1 {{ gitlab_rb }}`" = "### end of config ###" ]
+      sleep 60
+      [ -e {{ gitlab_rb }} ] && [ "`tail -1 {{ gitlab_rb }}`" = "### end of config ###" ]
     register: chk_config
     changed_when: false
     failed_when: chk_config.rc not in [0, 1]
@@ -105,7 +106,7 @@
     changed_when: false
 
   - name: restart gitlab
-    sudo: chk_config.rc == 0
+    sudo: chk_config.rc == 1
     sudo: yes
     shell: "docker restart gitlab"
     changed_when: false
