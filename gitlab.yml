@@ -6,6 +6,7 @@
     home_dir: /home/{{ user }}
     gitlab_hostname: localhost.localdomain
     gitlab_ip: 10.0.2.15
+    gitlab_rb: /srv/gitlab/config/gitlab.rb
 
   tasks:
   - name: ensure docker is at the present version
@@ -38,7 +39,7 @@
   - name: stop and remove exist docker containers
     sudo: yes
     shell: |
-      containers=$(docker ps -a -q)
+      containers=`docker ps -a -q`
       [ -z "$containers" ] || (docker stop $containers && docker rm $containers)
     changed_when: false
 
@@ -82,7 +83,7 @@
   - name: check gitlab config if already modified
     sudo: yes
     shell: |
-      [ -z "$(cat /srv/gitlab/config/gitlab.rb | grep "\"TLSv1.2\"")" ]
+      [ "`tail -1 {{ gitlab_rb }}`" = "### end of config ###" ]
     register: chk_config
     changed_when: false
     failed_when: chk_config.rc not in [0, 1]
@@ -90,26 +91,21 @@
 #  - debug: var=chk_config.rc
 
   - name: update gitlab config
-    when: chk_config.rc == 0
+    when: chk_config.rc == 1
     sudo: yes
     shell: |
-      echo "external_url 'https://azuki.cc'" >> /srv/gitlab/config/cat.txt
-      echo "nginx['redirect_http_to_https'] = true" >> /srv/gitlab/config/cat.txt
-
-      echo "nginx['ssl_certificate'] = '/etc/gitlab/ssl/azuki.cc.crt'" >> /srv/gitlab/config/cat.txt
-      echo "nginx['ssl_certificate_key'] = '/etc/gitlab/ssl/azuki.cc.key'" >> /srv/gitlab/config/cat.txt
-
-      echo "nginx['ssl_ciphers'] = 'ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256'" >> /srv/gitlab/config/cat.txt
-      echo "nginx['ssl_prefer_server_ciphers'] = 'on'" >> /srv/gitlab/config/cat.txt
-      echo "nginx['ssl_protocols'] = 'TLSv1.2'" >> /srv/gitlab/config/cat.txt
-
-      cat /srv/gitlab/config/gitlab.rb /srv/gitlab/config/cat.txt > /srv/gitlab/config/gitlab.rb.tmp
-      mv -f /srv/gitlab/config/gitlab.rb.tmp /srv/gitlab/config/gitlab.rb
-      rm /srv/gitlab/config/cat.txt
+      sed -i "$a\external_url 'https://azuki.cc'"                               {{ gitlab_rb }}
+      sed -i "$a\nginx['redirect_http_to_https'] = true"                        {{ gitlab_rb }}
+      sed -i "$a\nginx['ssl_certificate'] = '/etc/gitlab/ssl/azuki.cc.crt'"     {{ gitlab_rb }}
+      sed -i "$a\nginx['ssl_certificate_key'] = '/etc/gitlab/ssl/azuki.cc.key'" {{ gitlab_rb }}
+      sed -i "$a\nginx['ssl_ciphers'] = 'ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256'" {{ gitlab_rb }}
+      sed -i "$a\nginx['ssl_prefer_server_ciphers'] = 'on'"                     {{ gitlab_rb }}
+      sed -i "$a\nginx['ssl_protocols'] = 'TLSv1.2'"                            {{ gitlab_rb }}
+      sed -i "$a\### end of config ###"                                         {{ gitlab_rb }}
     changed_when: false
 
   - name: restart gitlab
-    when: chk_config.rc == 0
+    sudo: chk_config.rc == 0
     sudo: yes
     shell: "docker restart gitlab"
     changed_when: false
