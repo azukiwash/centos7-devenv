@@ -104,25 +104,34 @@
 
   - name: ensure login shell is zsh
     sudo: yes
-    command: grep {{ user }} /etc/passwd  
-    register: currentshell 
+    command: grep {{ user }} /etc/passwd
+    register: currentshell
   - name: change login shell to zsh
     sudo: yes
-    when: currentshell.stdout.find('/bin/zsh') == -1 
+    when: currentshell.stdout.find('/bin/zsh') == -1
     command: chsh -s /bin/zsh {{ user }}
 
-  - name: get prezto(https://github.com/sorin-ionescu/prezto)
-    git: repo=https://github.com/sorin-ionescu/prezto.git
-         dest={{ home_dir }}/.zprezto
+  # - name: get prezto(https://github.com/sorin-ionescu/prezto)
+  #   git: repo=https://github.com/sorin-ionescu/prezto.git
+  #        dest={{ home_dir }}/.zprezto
+  #        force=yes
+  # - name: install prezto
+  #   shell: |
+  #     [ -e {{ home_dir }}/.zlogin    ] || ln -s {{ home_dir }}/.zprezto/runcoms/zlogin    {{ home_dir }}/.zlogin
+  #     [ -e {{ home_dir }}/.zlogout   ] || ln -s {{ home_dir }}/.zprezto/runcoms/zlogout   {{ home_dir }}/.zlogout
+  #     [ -e {{ home_dir }}/.zpreztorc ] || ln -s {{ home_dir }}/.zprezto/runcoms/zpreztorc {{ home_dir }}/.zpreztorc
+  #     [ -e {{ home_dir }}/.zprofile  ] || ln -s {{ home_dir }}/.zprezto/runcoms/zprofile  {{ home_dir }}/.zprofile
+  #     [ -e {{ home_dir }}/.zshenv    ] || ln -s {{ home_dir }}/.zprezto/runcoms/zshenv    {{ home_dir }}/.zshenv
+  #     [ -e {{ home_dir }}/.zshrc     ] || ln -s {{ home_dir }}/.zprezto/runcoms/zshrc     {{ home_dir }}/.zshrc
+
+  - name: get oh-my-zsh(https://github.com/robbyrussell/oh-my-zsh)
+    git: repo=https://github.com/robbyrussell/oh-my-zsh.git
+         dest={{ home_dir }}/.oh-my-zsh
          force=yes
-  - name: install prezto
+  - name: copy .zshrc from oh-my-zsh template
     shell: |
-      [ -e {{ home_dir }}/.zlogin    ] || ln -s {{ home_dir }}/.zprezto/runcoms/zlogin    {{ home_dir }}/.zlogin
-      [ -e {{ home_dir }}/.zlogout   ] || ln -s {{ home_dir }}/.zprezto/runcoms/zlogout   {{ home_dir }}/.zlogout
-      [ -e {{ home_dir }}/.zpreztorc ] || ln -s {{ home_dir }}/.zprezto/runcoms/zpreztorc {{ home_dir }}/.zpreztorc
-      [ -e {{ home_dir }}/.zprofile  ] || ln -s {{ home_dir }}/.zprezto/runcoms/zprofile  {{ home_dir }}/.zprofile
-      [ -e {{ home_dir }}/.zshenv    ] || ln -s {{ home_dir }}/.zprezto/runcoms/zshenv    {{ home_dir }}/.zshenv
-      [ -e {{ home_dir }}/.zshrc     ] || ln -s {{ home_dir }}/.zprezto/runcoms/zshrc     {{ home_dir }}/.zshrc
+      cp {{ home_dir }}/.zshrc {{ home_dir }}/.zshrc.orig
+      cp {{ home_dir }}/.oh-my-zsh/templates/zshrc.zsh-template {{ home_dir }}/.zshrc.0
 
   - name: get autojump(https://github.com/joelthelion/autojump)
     git: repo=https://github.com/joelthelion/autojump.git
@@ -173,6 +182,8 @@
   - name: put peco config to home
     template: src=templates/peco_config.j2 dest={{ home_dir }}/.peco/config.json
 
-  - name: put .zshrc to home
-    template: src=templates/zshrc.j2 dest={{ home_dir }}/.zshrc
-
+  # append custom config to .zshrc
+  - template: src=templates/zshrc.j2 dest={{ home_dir }}/.zshrc.1
+  - assemble: src={{ home_dir }} dest={{ home_dir }}/.zshrc regexp='\.zshrc\.[0-9]'
+  - lineinfile: dest={{ home_dir }}/.zshrc regexp=^ZSH_THEME= line=ZSH_THEME="sunaku"
+  - command: rm {{ home_dir }}/.zshrc.0 {{ home_dir }}/.zshrc.1
