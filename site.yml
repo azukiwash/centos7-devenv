@@ -41,6 +41,7 @@
       - { name: 'wget' }
       - { name: 'tree' }
       - { name: 'golang' }
+      - { name: 'ansible' }
       - { name: 'docker' }
       - { name: 'the_silver_searcher' }
       - { name: 'jq' }
