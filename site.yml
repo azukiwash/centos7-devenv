@@ -104,6 +104,7 @@
 
   - name: ensure login shell is zsh
     sudo: yes
+    changed_when: false
     command: grep {{ user }} /etc/passwd
     register: currentshell
   - name: change login shell to zsh
@@ -111,27 +112,31 @@
     when: currentshell.stdout.find('/bin/zsh') == -1
     command: chsh -s /bin/zsh {{ user }}
 
-  # - name: get prezto(https://github.com/sorin-ionescu/prezto)
-  #   git: repo=https://github.com/sorin-ionescu/prezto.git
-  #        dest={{ home_dir }}/.zprezto
-  #        force=yes
-  # - name: install prezto
-  #   shell: |
-  #     [ -e {{ home_dir }}/.zlogin    ] || ln -s {{ home_dir }}/.zprezto/runcoms/zlogin    {{ home_dir }}/.zlogin
-  #     [ -e {{ home_dir }}/.zlogout   ] || ln -s {{ home_dir }}/.zprezto/runcoms/zlogout   {{ home_dir }}/.zlogout
-  #     [ -e {{ home_dir }}/.zpreztorc ] || ln -s {{ home_dir }}/.zprezto/runcoms/zpreztorc {{ home_dir }}/.zpreztorc
-  #     [ -e {{ home_dir }}/.zprofile  ] || ln -s {{ home_dir }}/.zprezto/runcoms/zprofile  {{ home_dir }}/.zprofile
-  #     [ -e {{ home_dir }}/.zshenv    ] || ln -s {{ home_dir }}/.zprezto/runcoms/zshenv    {{ home_dir }}/.zshenv
-  #     [ -e {{ home_dir }}/.zshrc     ] || ln -s {{ home_dir }}/.zprezto/runcoms/zshrc     {{ home_dir }}/.zshrc
-
   - name: get oh-my-zsh(https://github.com/robbyrussell/oh-my-zsh)
     git: repo=https://github.com/robbyrussell/oh-my-zsh.git
          dest={{ home_dir }}/.oh-my-zsh
          force=yes
   - name: copy .zshrc from oh-my-zsh template
+    changed_when: false
     shell: |
-      cp {{ home_dir }}/.zshrc {{ home_dir }}/.zshrc.orig
+      mv {{ home_dir }}/.zshrc {{ home_dir }}/.zshrc.org
       cp {{ home_dir }}/.oh-my-zsh/templates/zshrc.zsh-template {{ home_dir }}/.zshrc.0
+
+  - name: copy zshrc fragment file from templates
+    changed_when: false
+    template: src=templates/zshrc.j2 dest={{ home_dir }}/.zshrc.1
+
+  - name: mearge zshrc with fragments
+    changed_when: false
+    assemble: src={{ home_dir }} dest={{ home_dir }}/.zshrc regexp='\.zshrc\.[0-9]'
+
+  - name: update zshrc
+    changed_when: false
+    lineinfile: dest={{ home_dir }}/.zshrc regexp=^ZSH_THEME= line='ZSH_THEME=\"sunrise\"'
+
+  - name: remove fragment files
+    changed_when: false
+    command: rm {{ home_dir }}/.zshrc.0 {{ home_dir }}/.zshrc.1
 
   - name: get autojump(https://github.com/joelthelion/autojump)
     git: repo=https://github.com/joelthelion/autojump.git
@@ -146,6 +151,7 @@
     get_url: url=http://git.io/nodebrew
              dest=/var/tmp/nodebrew
   - name: install nodebrew
+    changed_when: false
     shell: |
       cd /var/tmp
       perl nodebrew setup
@@ -158,6 +164,7 @@
          dest={{ home_dir }}/.rbenv/plugins/ruby-build
 
   - name: install peco(https://github.com/peco/peco) to home
+    changed_when: false
     shell: |
       mkdir ~/.go
       export GOPATH="$HOME/.go"
@@ -165,6 +172,7 @@
       go get github.com/peco/migemogrep
 
   - name: set git config
+    changed_when: false
     shell: |
       git config --global core.editor vim
       git config --global alias.l 'log --graph --name-status --pretty=format:"%C(red)%h %C(green)%an %Creset%s %C(yellow)%d%Creset"'
@@ -177,13 +185,8 @@
     template: src=templates/tmux_conf.j2 dest={{ home_dir }}/.tmux.conf
 
   - name: create peco config dir to home
+    changed_when: false
     shell: |
       [ -e {{ home_dir }}/.peco ] || mkdir {{ home_dir }}/.peco
   - name: put peco config to home
     template: src=templates/peco_config.j2 dest={{ home_dir }}/.peco/config.json
-
-  # append custom config to .zshrc
-  - template: src=templates/zshrc.j2 dest={{ home_dir }}/.zshrc.1
-  - assemble: src={{ home_dir }} dest={{ home_dir }}/.zshrc regexp='\.zshrc\.[0-9]'
-  - lineinfile: dest={{ home_dir }}/.zshrc regexp=^ZSH_THEME= line=ZSH_THEME="sunaku"
-  - command: rm {{ home_dir }}/.zshrc.0 {{ home_dir }}/.zshrc.1
