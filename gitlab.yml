@@ -97,9 +97,9 @@
     sudo: yes
     changed_when: false
     lineinfile: dest={{ gitlab_rb }}
-                regexp="{{item.regexp}}"
+                regexp="{{ item.regexp }}"
                 insertafter="EOF"
-                line="{{item.line}}"
+                line="{{ item.line }}"
     with_items:
       - {
           regexp: '^external_url ',

@@ -1,114 +1,62 @@
 ---
 - hosts: vagrant
-  user: vagrant
   vars:
     user: vagrant
     home_dir: /home/{{ user }}
 
   tasks:
-  - name: Update to latest.
-    sudo: yes
+  - name: update to latest
+    become: yes
+    become_user: root
     yum: name=* state=latest
 
-  - name: ensure epel Repo are at the latest version
-    sudo: yes
+  - name: ensure epel repo is at the latest version
+    become: yes
+    become_user: root
     yum: name="epel-release" state=latest
 
-  - name: ensure sl is at the present version
-    sudo: yes
-    yum: name=sl state=present
-
-  - name: ensure git is at the present version
-    sudo: yes
-    yum: name=git state=present
-
   - name: ensure Development tools are at the latest version
-    sudo: yes
+    become: yes
+    become_user: root
     yum: name="@Development tools" state=latest
 
-  - name: ensure openssl-devel is at the present version
-    sudo: yes
-    yum: name=openssl-devel state=present
-
-  - name: ensure libyaml-devel is at the present version
-    sudo: yes
-    yum: name=libyaml-devel state=present
-
-  - name: ensure readline-devel is at the present version
-    sudo: yes
-    yum: name=readline-devel state=present
-
-  - name: ensure sqlite-devel is at the present version
-    sudo: yes
-    yum: name=sqlite-devel state=present
-
-  - name: ensure xz-devel is at the present version
-    sudo: yes
-    yum: name=xz-devel state=present
-
-  - name: ensure pcre-devel is at the present version
-    sudo: yes
-    yum: name=pcre-devel state=present
-
-  - name: ensure tree is at the present version
-    sudo: yes
-    yum: name=tree state=present
-
-  - name: ensure tmux is at the present version
-    sudo: yes
-    yum: name=tmux state=present
-
-  - name: ensure zsh is at the present version
-    sudo: yes
-    yum: name=zsh state=present
-
-  - name: ensure vim is at the present version
-    sudo: yes
-    yum: name=vim state=present
-
-  - name: ensure wget is at the present version
-    sudo: yes
-    yum: name=wget state=present
-
-  - name: ensure curl is at the present version
-    sudo: yes
-    yum: name=curl state=present
-
-  - name: ensure golang is at the present version
-    sudo: yes
-    yum: name=golang state=present
-
-  - name: ensure docker is at the present version
-    sudo: yes
-    yum: name=docker state=present
-
-  - name: ensure the_silver_searcher is at the present version
-    sudo: yes
-    yum: name=the_silver_searcher state=present
-
-  - name: ensure jq is at the present version
-    sudo: yes
-    yum: name=jq state=present
-
-  - name: ensure ngrep is at the present version
-    sudo: yes
-    yum: name=ngrep state=present
-
-  - name: ensure nmap is at the present version
-    sudo: yes
-    yum: name=nmap state=present
-
-  - name: ensure socat is at the present version
-    sudo: yes
-    yum: name=socat state=present
+  - name: ensure items are in the present version
+    become: yes
+    become_user: root
+    yum: name="{{ item.name }}"
+         state=present
+    with_items:
+      - { name: 'sl' }
+      - { name: 'git' }
+      - { name: 'openssl-devel' }
+      - { name: 'libyaml-devel' }
+      - { name: 'readline-devel' }
+      - { name: 'sqlite-devel' }
+      - { name: 'xz-devel' }
+      - { name: 'pcre-devel' }
+      - { name: 'zsh' }
+      - { name: 'tmux' }
+      - { name: 'vim' }
+      - { name: 'curl' }
+      - { name: 'wget' }
+      - { name: 'tree' }
+      - { name: 'golang' }
+      - { name: 'docker' }
+      - { name: 'the_silver_searcher' }
+      - { name: 'jq' }
+      - { name: 'ngrep' }
+      - { name: 'nmap' }
+      - { name: 'socat' }
 
   - name: ensure login shell is zsh
-    sudo: yes
+    become: yes
+    become_user: root
     changed_when: false
     command: grep {{ user }} /etc/passwd
     register: currentshell
   - name: change login shell to zsh
-    sudo: yes
+    become: yes
+    become_user: root
     when: currentshell.stdout.find('/bin/zsh') == -1
     command: chsh -s /bin/zsh {{ user }}
 
