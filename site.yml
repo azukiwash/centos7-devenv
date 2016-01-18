@@ -87,8 +87,8 @@
     changed_when: false
     command: rm {{ home_dir }}/.zshrc.0 {{ home_dir }}/.zshrc.1
 
-  - name: get autojump(https://github.com/joelthelion/autojump)
-    git: repo=https://github.com/joelthelion/autojump.git
+  - name: get autojump(https://github.com/wting/autojump)
+    git: repo=https://github.com/wting/autojump.git
          dest=/var/tmp/autojump
   - name: install autojump to home
     shell: |
