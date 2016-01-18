@@ -124,3 +124,13 @@
     when: chk_config.rc == 0
     changed_when: false
     shell: "docker restart gitlab"
+
+  - name: ensure golang are in the present version
+    become: yes
+    become_user: root
+    yum: name=golang
+         state=present
+  - name: install rclone(http://rclone.org/)
+    changed_when: false
+    shell: |
+      export GOPATH="{{ home_dir }}"; go get github.com/ncw/rclone
