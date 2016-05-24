@@ -10,10 +10,23 @@
     become_user: root
     yum: name=* state=latest
 
-  - name: ensure epel repo is at the latest version
+  - name: ensure epel repo is at the latest version(for centos)
     become: yes
     become_user: root
     yum: name="epel-release" state=latest
+    when: ansible_distribution == "CentOS"
+
+  - name: ensure epel repo is at the latest version(for RHEL7) STEP01
+    become: yes
+    become_user: root
+    get_url: url=https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm dest=/tmp/epel-release-latest-7.noarch.rpm
+    when: ansible_distribution == "RedHat" and ansible_distribution_major_version == "7"
+
+  - name: ensure epel repo is at the latest version(for RHEL7) STEP02
+    become: yes
+    become_user: root
+    yum: name=/tmp/epel-release-latest-7.noarch.rpm state=present
+    when: ansible_distribution == "RedHat" and ansible_distribution_major_version == "7"
 
   - name: ensure Development tools are at the latest version
     become: yes
@@ -29,7 +42,6 @@
       - { name: 'sl' }
       - { name: 'git' }
       - { name: 'openssl-devel' }
-      - { name: 'libyaml-devel' }
       - { name: 'readline-devel' }
       - { name: 'sqlite-devel' }
       - { name: 'xz-devel' }
@@ -40,14 +52,24 @@
       - { name: 'curl' }
       - { name: 'wget' }
       - { name: 'tree' }
-      - { name: 'golang' }
       - { name: 'ansible' }
-      - { name: 'docker' }
       - { name: 'the_silver_searcher' }
       - { name: 'jq' }
       - { name: 'ngrep' }
       - { name: 'nmap' }
       - { name: 'socat' }
+
+  - name: ensure items are in the present version(for centos)
+    become: yes
+    become_user: root
+    yum: name="{{ item.name }}"
+         state=present
+    with_items:
+      - { name: 'libyaml-devel' }
+      - { name: 'golang' }
+      - { name: 'docker' }
+    when: ansible_distribution == "CentOS"
+
 
   - name: ensure login shell is zsh
     become: yes
@@ -119,6 +141,7 @@
       export GOPATH="$HOME/.go"
       go get github.com/peco/peco/cmd/peco
       go get github.com/peco/migemogrep
+    when: ansible_distribution == "CentOS"
 
   - name: set git config
     changed_when: false
@@ -137,5 +160,7 @@
     changed_when: false
     shell: |
       [ -e {{ home_dir }}/.peco ] || mkdir {{ home_dir }}/.peco
+    when: ansible_distribution == "CentOS"
   - name: put peco config to home
     template: src=templates/peco_config.j2 dest={{ home_dir }}/.peco/config.json
+    when: ansible_distribution == "CentOS"
