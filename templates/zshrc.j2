@@ -1,40 +1,150 @@
-alias ltt="/usr/bin/ls --color=auto --full-time -lAhtr"
-alias be="bundle exec"
-alias dk="sudo docker"
-alias dkp="dk ps -a"
-alias dki="dk images"
-alias sl=/usr/bin/sl
+bindkey -e
+autoload -Uz compinit; compinit
+autoload -Uz colors; colors
 
-export EDITOR=vi
-export VISUAL=vi
-export HISTSIZE=100000
-export SAVEHIST=100000
+setopt complete_in_word
+setopt always_to_end
+setopt path_dirs
+setopt auto_menu
+setopt auto_list
+setopt auto_param_slash
+unsetopt menu_complete
+unsetopt flow_control
 
-# for nodebrew
-export PATH=$HOME/.nodebrew/current/bin:$PATH
+setopt auto_cd
+setopt auto_pushd
+setopt pushd_ignore_dups
+setopt pushd_silent
+setopt pushd_to_home
+setopt cdable_vars
+setopt auto_name_dirs
+setopt multios
+setopt extended_glob
+unsetopt clobber
 
-# for rbenv
-export PATH="$HOME/.rbenv/bin:$PATH"
-eval "$(rbenv init -)"
+setopt bang_hist
+setopt extended_history
+setopt inc_append_history
+setopt share_history
+setopt hist_expire_dups_first
+setopt hist_ignore_dups
+setopt hist_ignore_all_dups
+setopt hist_find_no_dups
+setopt hist_ignore_space
+setopt hist_save_no_dups
+setopt hist_verify
+setopt hist_beep
 
-# for golang
-export GOPATH="$HOME/.go"
-export PATH="$GOPATH/bin:$PATH"
+setopt correct
 
-# for autojump
-[[ -s $HOME/.autojump/etc/profile.d/autojump.sh ]] && source $HOME/.autojump/etc/profile.d/autojump.sh
+zstyle ':completion:*:default' menu select=1
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
+bindkey "^[[Z" reverse-menu-complete
+function back() { pushd +${1} }
 
-autoload -U compinit && compinit -u
+HISTFILE=~/.zsh_history
+HISTSIZE=100000
+SAVEHIST=100000
 
-# for peco
+autoload history-search-end
+zle -N history-beginning-search-backward-end history-search-end
+zle -N history-beginning-search-forward-end history-search-end
+bindkey "^P" history-beginning-search-backward-end
+bindkey "^N" history-beginning-search-forward-end
+bindkey "^[[A" history-beginning-search-backward-end
+bindkey "^[[B" history-beginning-search-forward-end
+
+#PROMPT="%{${fg[cyan]}%}[%n@getdata-dev]%{${reset_color}%} %~%# "
+autoload -Uz vcs_info
+zstyle ':vcs_info:*' enable git svn
+zstyle ':vcs_info:*' max-exports 6
+zstyle ':vcs_info:git:*' check-for-changes true
+zstyle ':vcs_info:git:*' formats '%b@%r' '%c' '%u'
+zstyle ':vcs_info:git:*' actionformats '%b@%r|%a' '%c' '%u'
+setopt prompt_subst
+function vcs_echo {
+    local st branch color
+    STY= LANG=en_US.UTF-8 vcs_info
+    st=`git status 2> /dev/null`
+    if [[ -z "$st" ]]; then return; fi
+    branch="$vcs_info_msg_0_"
+    if   [[ -n "$vcs_info_msg_1_" ]]; then color=${fg[green]} #staged
+    elif [[ -n "$vcs_info_msg_2_" ]]; then color=${fg[red]} #unstaged
+    elif [[ -n `echo "$st" | grep "^Untracked"` ]]; then color=${fg[blue]} # untracked
+    else color=${fg[cyan]}
+    fi
+    echo "%{$color%}(%{$branch%})%{$reset_color%}" | sed -e s/@/"%F{yellow}@%f%{$color%}"/
+}
+PROMPT='
+%F{green}[%n@%m:%~] %f `vcs_echo`
+%(?.$.%F{red}$%f) '
+
+alias ls='ls --color=auto'
+alias l='ls -lAh'
+alias ll='ls -l'
+alias la='ls -la'
+alias lt='ls -altr'
+alias h='history'
+alias p='ps -ef'
+alias t='tail -f'
+alias d='dirs -lv'
+alias b='back'
+for index ({1..9}) alias "$index"="pushd +${index}"; unset index
+alias ...='cd ../..'
+alias ....='cd ../../..'
+alias v='vim'
+
+alias pp="p | peco | awk '{ print \$2 }'"
+alias ppkill='kill $(pp)'
+
+alias gj='$(ghq list -p| peco)'
+
+REPORTTIME=3
+
+### cdr
+autoload -Uz is-at-least
+if is-at-least 4.3.11
+then
+  autoload -Uz chpwd_recent_dirs cdr add-zsh-hook
+  add-zsh-hook chpwd chpwd_recent_dirs
+  zstyle ':chpwd:*' recent-dirs-max 10000
+  zstyle ':chpwd:*' recent-dirs-default yes
+  zstyle ':completion:*' recent-dirs-insert both
+fi
+
+function peco-cdr () {
+    local selected_dir=$(cdr -l | awk '{ print $2 }' | peco --query "$LBUFFER")
+    if [ -n "$selected_dir" ]; then
+        BUFFER="cd ${selected_dir}"
+        zle accept-line
+    fi
+    zle clear-screen
+}
+zle -N peco-cdr
+
+bindkey '^j' peco-cdr
+
+### search
+function exists { which $1 &> /dev/null }
+function peco_select_history() {
+    local tac
+    exists gtac && tac="gtac" || { exists tac && tac="tac" || { tac="tail -r" } }
+    BUFFER=$(history -n 1 | eval $tac | peco --query "$LBUFFER")
+    CURSOR=$#BUFFER         # move cursor
+    zle -R -c               # refresh
+}
+
+zle -N peco_select_history
+bindkey '^r' peco_select_history
+
 ## for docker
 function dkgrep() {
     if [[ $1 == "" ]]; then
-        PECO=peco
+        peco=peco
     else
-        PECO="peco --query $1"
+        peco="peco --query $1"
     fi
-    sudo docker ps -a | eval $PECO | awk '{ print $1 }'
+    sudo docker container ls -a | eval $peco | awk '{ print $1 }'
 }
 
 function dkkill() {
@@ -69,11 +179,11 @@ function dkrmf() {
 
 function dkigrep() {
     if [[ $1 == "" ]]; then
-        PECO=peco
+        peco=peco
     else
-        PECO="peco --query $1"
+        peco="peco --query $1"
     fi
-    sudo docker images | eval $PECO | awk '{ print $3 }'
+    sudo docker image ls | eval $peco | awk '{ print $3 }'
 }
 
 function dkrmi() {
@@ -86,46 +196,16 @@ function dkrmi() {
     dkigrep $QUERY | xargs sudo docker rmi $*
 }
 
-## for proccess control
-function ppgrep() {
-    if [[ $1 == "" ]]; then
-        PECO=peco
-    else
-        PECO="peco --query $1"
-    fi
-    sudo ps auxww | eval $PECO | awk '{ print $2 }'
-}
 
-function ppkill() {
-    if [[ $1 =~ "^-" ]]; then
-        QUERY=""            # options only
-    else
-        QUERY=$1            # with a query
-        [[ $# > 0 ]] && shift
-    fi
-    ppgrep $QUERY | xargs sudo kill $*
-}
+# for golang
+export GOPATH=$HOME/go
+export PATH=$PATH:$GOPATH/bin
+export PATH=$PATH:/usr/local/go/bin
+export PATH=~/.local/bin:${PATH}
 
-## for zsh history search
-function exists { type $1 &> /dev/null }
+# for nodebrew
+export PATH=$HOME/.nodebrew/current/bin:$PATH
 
-if exists peco; then
-    function peco_select_history() {
-        local tac
-        exists gtac && tac="gtac" || { exists tac && tac="tac" || { tac="tail -r" } }
-        BUFFER=$(fc -l -n 1 | eval $tac | peco)
-        CURSOR=$#BUFFER         # move cursor
-        zle -R -c               # refresh
-    }
-    zle -N peco_select_history
-    bindkey '^R' peco_select_history
-fi
-
-## for ag and vim
-function agv () {
-  vim $(ag $@ | peco | awk -F : '{print "-c " $2 " " $1}')
-}
-
-function gv () {
-  vim $(gd | peco)
-}
+# for rbenv
+export PATH="$HOME/.rbenv/bin:$PATH"
+eval "$(rbenv init -)"

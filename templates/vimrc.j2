@@ -1,17 +1,51 @@
-set tabstop=2
-set et
-set sts=2
-set showmatch
-set ruler
-set nobackup
-set autoread
-set history=256
-set hidden
+syntax on
+
+set expandtab
+set shiftwidth=4
+set softtabstop=4
+
+set ignorecase
 set smartcase
+set incsearch
 set wrapscan
 set hlsearch
-set is
 
-set statusline=%<%f\ %m\ %r%h%w%{'['.(&fenc!=''?&fenc:&enc).(&bomb?':BOM':'').']['.&ff.']'}%=\ (%v,%l)/%L%8P
+set pumheight=10
+set infercase
+set virtualedit=all
+
+set showmatch
+set matchtime=1
+set ruler
+set number
+set cursorline
+set cursorcolumn
+set visualbell
+set wrap
+set showcmd
+set display=lastline
+set laststatus=2
+set wildmenu
+autocmd FileType * setlocal formatoptions-=ro
+
+set nobackup
+set noswapfile
+set autoread
+set hidden
+set history=5000
+
+set encoding=utf-8
+set fileformat=unix
+
+inoremap jj <esc>
+nnoremap j gj
+nnoremap k gk
+nnoremap <s-h> ^
+nnoremap <s-l> $
+vnoremap <c-y> "+y
+nnoremap <c-q> "+gP
+inoremap <c-q> <c-r>+
+
+set statusline=%<%f\ %m\ %r%h%w%{'['.(&fenc!=''?&fenc:&enc).(&bomb?':BOM':'').']['.&ff.']'}%=\ (%v,%l)/%L%8P\
 
 imap <c-j> <esc>

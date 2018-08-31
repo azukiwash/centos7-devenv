@@ -3,37 +3,39 @@
   vars:
     user: vagrant
     home_dir: /home/{{ user }}
+  vars_files:
+    - vars/golang.yml
 
   tasks:
-  - name: update to latest
+  - name: Update to latest
     become: yes
     become_user: root
     yum: name=* state=latest
 
-  - name: ensure epel repo is at the latest version(for centos)
+  - name: Ensure epel repo is at the latest version(for centos)
     become: yes
     become_user: root
     yum: name="epel-release" state=latest
     when: ansible_distribution == "CentOS"
 
-  - name: ensure epel repo is at the latest version(for RHEL7) STEP01
+  - name: Ensure epel repo is at the latest version(for RHEL7) STEP01
     become: yes
     become_user: root
     get_url: url=https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm dest=/tmp/epel-release-latest-7.noarch.rpm
     when: ansible_distribution == "RedHat" and ansible_distribution_major_version == "7"
 
-  - name: ensure epel repo is at the latest version(for RHEL7) STEP02
+  - name: Ensure epel repo is at the latest version(for RHEL7) STEP02
     become: yes
     become_user: root
     yum: name=/tmp/epel-release-latest-7.noarch.rpm state=present
     when: ansible_distribution == "RedHat" and ansible_distribution_major_version == "7"
 
-  - name: ensure Development tools are at the latest version
+  - name: Ensure Development tools are at the latest version
     become: yes
     become_user: root
     yum: name="@Development tools" state=latest
 
-  - name: ensure items are in the present version
+  - name: Ensure items are in the present version
     become: yes
     become_user: root
     yum: name="{{ item.name }}"
@@ -59,108 +61,118 @@
       - { name: 'nmap' }
       - { name: 'socat' }
 
-  - name: ensure items are in the present version(for centos)
+  - name: Ensure items are in the present version(for centos)
     become: yes
     become_user: root
     yum: name="{{ item.name }}"
          state=present
     with_items:
       - { name: 'libyaml-devel' }
-      - { name: 'golang' }
       - { name: 'docker' }
     when: ansible_distribution == "CentOS"
 
 
-  - name: ensure login shell is zsh
+  - name: Download the Go tarball
+    become: yes
+    become_user: root
+    get_url:
+      url: "{{ go_download_location }}"
+      dest: /tmp/{{ go_tarball }}
+      checksum: "{{ go_tarball_checksum }}"
+
+  - name: Register the current Go version (if any)
+    command: /usr/local/go/bin/go version
+    ignore_errors: yes
+    register: go_version
+    changed_when: false
+
+  - name: Remove old installation of Go
+    become: yes
+    become_user: root
+    file:
+      path: /usr/local/go
+      state: absent
+    when: go_version is failed or go_version.stdout != go_version_target
+
+  - name: Extract the Go tarball if Go is not yet installed or not the desired version
+    become: yes
+    become_user: root
+    unarchive:
+      src: /tmp/{{ go_tarball }}
+      dest: /usr/local
+      copy: no
+    when: go_version is failed or go_version.stdout != go_version_target
+
+
+  - name: Ensure login shell is zsh
     become: yes
     become_user: root
     changed_when: false
     command: grep {{ user }} /etc/passwd
     register: currentshell
-  - name: change login shell to zsh
+  - name: Change login shell to zsh
     become: yes
     become_user: root
     when: currentshell.stdout.find('/bin/zsh') == -1
     command: chsh -s /bin/zsh {{ user }}
 
-  - name: get oh-my-zsh(https://github.com/robbyrussell/oh-my-zsh)
-    git: repo=https://github.com/robbyrussell/oh-my-zsh.git
-         dest={{ home_dir }}/.oh-my-zsh
-         force=yes
-  - name: copy .zshrc from oh-my-zsh template
+  - name: Copy zshrc file from templates
     changed_when: false
-    shell: |
-      mv {{ home_dir }}/.zshrc {{ home_dir }}/.zshrc.org
-      cp {{ home_dir }}/.oh-my-zsh/templates/zshrc.zsh-template {{ home_dir }}/.zshrc.0
+    template: src=templates/zshrc.j2 dest={{ home_dir }}/.zshrc
 
-  - name: copy zshrc fragment file from templates
-    changed_when: false
-    template: src=templates/zshrc.j2 dest={{ home_dir }}/.zshrc.1
-
-  - name: mearge zshrc with fragments
-    changed_when: false
-    assemble: src={{ home_dir }} dest={{ home_dir }}/.zshrc regexp='\.zshrc\.[0-9]'
-
-  - name: update zshrc
-    changed_when: false
-    lineinfile: dest={{ home_dir }}/.zshrc regexp=^ZSH_THEME= line='ZSH_THEME=\"sunrise\"'
-
-  - name: remove fragment files
-    changed_when: false
-    command: rm {{ home_dir }}/.zshrc.0 {{ home_dir }}/.zshrc.1
-
-  - name: get autojump(https://github.com/wting/autojump)
-    git: repo=https://github.com/wting/autojump.git
-         dest=/var/tmp/autojump
-  - name: install autojump to home
-    shell: |
-      creates={{ home_dir }}/.autojump/bin/autojump
-      cd /var/tmp/autojump
-      ./install.py
-
-  - name: get nodebrew(https://github.com/hokaccha/nodebrew)
+  - name: Get nodebrew(https://github.com/hokaccha/nodebrew)
     get_url: url=http://git.io/nodebrew
              dest=/var/tmp/nodebrew
-  - name: install nodebrew
+  - name: Install nodebrew
     changed_when: false
     shell: |
       cd /var/tmp
       perl nodebrew setup
 
-  - name: get rbenv(https://github.com/sstephenson/rbenv)
+  - name: Get rbenv(https://github.com/sstephenson/rbenv)
     git: repo=https://github.com/sstephenson/rbenv.git
          dest={{ home_dir }}/.rbenv
-  - name: get ruby-build(https://github.com/sstephenson/ruby-build)
+  - name: Get ruby-build(https://github.com/sstephenson/ruby-build)
     git: repo=https://github.com/sstephenson/ruby-build.git
          dest={{ home_dir }}/.rbenv/plugins/ruby-build
 
-  - name: install peco(https://github.com/peco/peco) to home
+  - name: Install peco(https://github.com/peco/peco) to home
     changed_when: false
     shell: |
-      mkdir ~/.go
-      export GOPATH="$HOME/.go"
+      export GOPATH={{ home_dir }}/go
+      export PATH=$PATH:$GOPATH/bin
+      export PATH=$PATH:/usr/local/go/bin
       go get github.com/peco/peco/cmd/peco
       go get github.com/peco/migemogrep
-    when: ansible_distribution == "CentOS"
 
-  - name: set git config
+  - name: Install other go tools
+    changed_when: false
+    shell: |
+      export GOPATH={{ home_dir }}/go
+      export PATH=$PATH:$GOPATH/bin
+      export PATH=$PATH:/usr/local/go/bin
+      go get -u github.com/monochromegane/the_platinum_searcher/...
+      go get github.com/motemen/ghq
+
+  - name: Set git config
     changed_when: false
     shell: |
       git config --global core.editor vim
       git config --global alias.l 'log --graph --name-status --pretty=format:"%C(red)%h %C(green)%an %Creset%s %C(yellow)%d%Creset"'
       git config --global color.ui auto
+      git config --global ghq.root {{ home_dir }}/go/src
 
-  - name: put .vimrc to home
+  - name: Put .vimrc to home
     template: src=templates/vimrc.j2 dest={{ home_dir }}/.vimrc
 
-  - name: put .tmux.conf to home
+  - name: Put .tmux.conf to home
     template: src=templates/tmux_conf.j2 dest={{ home_dir }}/.tmux.conf
 
-  - name: create peco config dir to home
+  - name: Create peco config dir to home
     changed_when: false
     shell: |
       [ -e {{ home_dir }}/.peco ] || mkdir {{ home_dir }}/.peco
     when: ansible_distribution == "CentOS"
-  - name: put peco config to home
+  - name: Put peco config to home
     template: src=templates/peco_config.j2 dest={{ home_dir }}/.peco/config.json
     when: ansible_distribution == "CentOS"
