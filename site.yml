@@ -152,7 +152,16 @@
       export PATH=$PATH:$GOPATH/bin
       export PATH=$PATH:/usr/local/go/bin
       go get -u github.com/monochromegane/the_platinum_searcher/...
-      go get github.com/motemen/ghq
+      go get -u github.com/motemen/ghq
+      go get -u github.com/motemen/gore
+      go get -u github.com/k0kubun/pp
+      go get -u github.com/motemen/gore/gocode
+      go get -u golang.org/x/tools/cmd/godoc
+      go get -u golang.org/x/tools/cmd/...
+      go get -u github.com/golang/lint
+      go get -u github.com/golang/lint/golint
+      go get -u github.com/golang/dep
+      go get -u github.com/go-chi/chi
 
   - name: Set git config
     changed_when: false
