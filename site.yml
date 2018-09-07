@@ -60,6 +60,8 @@
       - { name: 'ngrep' }
       - { name: 'nmap' }
       - { name: 'socat' }
+      - { name: 'ghc' }
+      - { name: 'cabal-install' }
 
   - name: Ensure items are in the present version(for centos)
     become: yes
@@ -129,12 +131,16 @@
       cd /var/tmp
       perl nodebrew setup
 
-  - name: Get rbenv(https://github.com/sstephenson/rbenv)
-    git: repo=https://github.com/sstephenson/rbenv.git
+  - name: Get rbenv(https://github.com/rbenv/rbenv)
+    git: repo=https://github.com/rbenv/rbenv.git
          dest={{ home_dir }}/.rbenv
-  - name: Get ruby-build(https://github.com/sstephenson/ruby-build)
-    git: repo=https://github.com/sstephenson/ruby-build.git
+  - name: Get ruby-build
+    git: repo=https://github.com/rbenv/ruby-build.git
          dest={{ home_dir }}/.rbenv/plugins/ruby-build
+
+  - name: Get pyenv(https://github.com/pyenv/pyenv)
+    git: repo=https://github.com/pyenv/pyenv.git
+         dest={{ home_dir }}/.pyenv
 
   - name: Install peco(https://github.com/peco/peco) to home
     changed_when: false
